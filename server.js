@@ -9,6 +9,7 @@ const PORT = 8080;
 console.log('process.cwd = ', process.cwd());
 console.log('__dirname = ', __dirname);
 
+// send in a dirname+filename fileToRead
 function promisifiedFileReading(fileToRead) {
   return new Promise((resolve, reject) => {
     fs.readFile(fileToRead, (error, fileData) => {
@@ -22,43 +23,57 @@ function promisifiedFileReading(fileToRead) {
 }
 
 function createPathName(pathToJoin) {
+  console.log('pathname created = ', path.join(__dirname, pathToJoin));
   return path.join(__dirname, pathToJoin);
 }
 
 const server = http.createServer((req, res) => {
   console.log('req.url = ', req.url);
 
-  if (req.url === '/dl.html') {
-    const dlpath = createPathName('dl.html');
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    fs.createReadStream(dlpath).pipe(res);
-  }
-
   // TODO: create transform stream/ data processing stream
 
   // read the file and set the header to Content-Disposition so client can download the file
   if (req.url === '/files/somefile.txt') {
-    const rs = fs.createReadStream('./files/somefile.txt');
+    const rs = fs.createReadStream(createPathName('files/somefile.txt'));
     res.setHeader('Content-Disposition', 'attachment; filename=verynice.txt');
-    rs.pipe(res);
+    return rs.pipe(res);
+  }
+
+  if (req.url === '/dl.html') {
+    const dlpath = createPathName('dl.html');
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    return fs.createReadStream(dlpath).pipe(res);
+  }
+
+  if (req.url === '/readFile') {
+    // readFile() reads the full contents of the file, and invokes the callback function when it's done
+    fs.readFile(createPathName('/files/readFile.txt'), (err, data) => {
+      if (err) {
+        return console.log('ERROR reading the /readFile path: ', err);
+      }
+      return res.end(data);
+    });
   }
 
   // this will let the client download that which is in the res.end function
   if (req.url === '/send-greetings') {
     res.statusCode = 200;
-    res.setHeader('Content-Disposition', 'attachment; filename="greetings.txt"');
-    res.end('hello');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="greetings.txt"'
+    );
+    return res.end('hello');
   }
 
   if (req.url === '/') {
     const homepath = createPathName('index.html');
     res.writeHead(200, { 'Content-Type': 'text/html' });
-    fs.createReadStream(homepath).pipe(res);
+    return fs.createReadStream(homepath).pipe(res);
   }
 
   // create a default (index or 404 ?)
   else {
-    console.log('landed in default, thus 404');
+    console.log('landed in default - req.url = ', req.url);
     const oopsPath = createPathName('404.html');
     res.writeHead(404, { 'Content-Type': 'text/html' });
     fs.createReadStream(oopsPath).pipe(res);
