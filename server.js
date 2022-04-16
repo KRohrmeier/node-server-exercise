@@ -29,54 +29,44 @@ function createPathName(pathToJoin) {
 
 const server = http.createServer((req, res) => {
   console.log('req.url = ', req.url);
+  let htmlFile = '';
+  let contentType = '';
 
-  // TODO: create transform stream/ data processing stream
+  switch (req.url) {
+    case '/':
+      htmlFile = 'index.html';
+      contentType = 'text/html';
 
-  // read the file and set the header to Content-Disposition so client can download the file
-  if (req.url === '/files/somefile.txt') {
-    const rs = fs.createReadStream(createPathName('files/somefile.txt'));
-    res.setHeader('Content-Disposition', 'attachment; filename=verynice.txt');
-    return rs.pipe(res);
+      break;
+    case '/get-some-file':
+      htmlFile = 'files/somefile.txt';
+      contentType = 'Content-Disposition';
+      break;
+
+    case '/download':
+      htmlFile = 'dl.html';
+      contentType = 'text/html';
+      break;
+
+    default:
+      htmlFile = '404.html';
+      contentType = 'text/html';
+      break;
   }
 
-  if (req.url === '/dl.html') {
-    const dlpath = createPathName('dl.html');
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    return fs.createReadStream(dlpath).pipe(res);
+  if (htmlFile) {
+    renderResource(res, htmlFile, contentType);
   }
 
-  if (req.url === '/readFile') {
-    // readFile() reads the full contents of the file, and invokes the callback function when it's done
-    fs.readFile(createPathName('/files/readFile.txt'), (err, data) => {
-      if (err) {
-        return console.log('ERROR reading the /readFile path: ', err);
-      }
-      return res.end(data);
-    });
-  }
-
-  // this will let the client download that which is in the res.end function
-  if (req.url === '/send-greetings') {
-    res.statusCode = 200;
-    res.setHeader(
-      'Content-Disposition',
-      'attachment; filename="greetings.txt"'
-    );
-    return res.end('hello');
-  }
-
-  if (req.url === '/') {
-    const homepath = createPathName('index.html');
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    return fs.createReadStream(homepath).pipe(res);
-  }
-
-  // create a default (index or 404 ?)
-  else {
-    console.log('landed in default - req.url = ', req.url);
-    const oopsPath = createPathName('404.html');
-    res.writeHead(404, { 'Content-Type': 'text/html' });
-    fs.createReadStream(oopsPath).pipe(res);
+  function renderResource(res, fileToRender = 'index.html', contentType = 'text/html') {
+    let contentHeader = {};
+    if (contentType === 'Content-Disposition') {
+      contentHeader = { 'Content-Type': 'text', 'Content-Disposition': 'attachment' };
+    } else {
+      contentHeader = { 'Content-Type': 'text/html' };
+    }
+    res.writeHead(200, contentHeader);
+    return fs.createReadStream(createPathName(fileToRender)).pipe(res);
   }
 });
 
