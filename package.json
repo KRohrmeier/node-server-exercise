@@ -31,5 +31,8 @@
   "homepage": "https://github.com/KRohrmeier/node-server-exercise#readme",
   "devDependencies": {
     "nodemon": "^2.0.15"
+  },
+  "dependencies": {
+    "mime-types": "^2.1.35"
   }
 }

@@ -1,6 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const lookup = require('mime-types').lookup;
 
 const PORT = 8080;
 
@@ -23,51 +24,42 @@ function promisifiedFileReading(fileToRead) {
 }
 
 function createPathName(pathToJoin) {
-  console.log('pathname created = ', path.join(__dirname, pathToJoin));
-  return path.join(__dirname, pathToJoin);
+  const requestedPath = path.join(__dirname, 'public', pathToJoin);
+  console.log('pathname created = ', requestedPath);
+  return path.join(requestedPath);
 }
 
 const server = http.createServer((req, res) => {
   console.log('req.url = ', req.url);
-  let htmlFile = '';
-  let contentType = '';
 
-  switch (req.url) {
-    case '/':
-      htmlFile = 'index.html';
-      contentType = 'text/html';
+  // remove leading and trailing slashes
+  let resourceUrl = req.url.replace(/^\/+|\/+$/g, '');
 
-      break;
-    case '/get-some-file':
-      htmlFile = 'files/somefile.txt';
-      contentType = 'Content-Disposition';
-      break;
-
-    case '/download':
-      htmlFile = 'dl.html';
-      contentType = 'text/html';
-      break;
-
-    default:
-      htmlFile = '404.html';
-      contentType = 'text/html';
-      break;
+  // setting base url to index.html
+  if (resourceUrl === '') {
+    resourceUrl = 'index.html';
   }
 
-  if (htmlFile) {
-    renderResource(res, htmlFile, contentType);
-  }
+  let filePath = createPathName(resourceUrl);
 
-  function renderResource(res, fileToRender = 'index.html', contentType = 'text/html') {
-    let contentHeader = {};
-    if (contentType === 'Content-Disposition') {
-      contentHeader = { 'Content-Type': 'text', 'Content-Disposition': 'attachment' };
+  fs.readFile(filePath, (error, content) => {
+    if (error) {
+      console.log('sending a 404');
+      res.writeHead(404, { 'Content-Type': 'text/html' });
+      return fs.createReadStream(createPathName('404.html')).pipe(res);
     } else {
-      contentHeader = { 'Content-Type': 'text/html' };
+      let mime = lookup(filePath);
+      console.log('returning %s of type %s', filePath, mime);
+
+      // if mime-type known, set header; otherwise, do not use Content-type header
+      if (mime) {
+        res.writeHead(200, { 'Content-Type': mime });
+        res.end(content);
+      } else {
+        res.statusCode = 200;
+      }
     }
-    res.writeHead(200, contentHeader);
-    return fs.createReadStream(createPathName(fileToRender)).pipe(res);
-  }
+  });
 });
 
 server.listen(PORT, () => {
