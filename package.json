@@ -13,7 +13,7 @@
   "scripts": {
     "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "watch": "nodemon"
+    "watch": "DEBUG=debug nodemon"
   },
   "repository": {
     "type": "git",
@@ -33,6 +33,7 @@
     "nodemon": "^2.0.15"
   },
   "dependencies": {
+    "debug": "^4.3.4",
     "mime-types": "^2.1.35"
   }
 }
