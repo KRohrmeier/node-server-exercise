@@ -5,9 +5,11 @@ const lookup = require('mime-types').lookup;
 
 const PORT = 8080;
 
-// process.cwd is root of where the Node process starts; dirname is the name of directory of the file
-// change from where you call node server.js and these two will differ (bcs process.cwd will change)
-// uncomment the 2 console.logs below to see this in action :)
+/* 
+  process.cwd is root of where the Node process starts; dirname is the name of directory of the file
+  change from where you call node server.js and these two will differ (bcs process.cwd will change)
+  uncomment the 2 console.logs below to see this in action :)
+*/
 // console.log('process.cwd = ', process.cwd());
 // console.log('__dirname = ', __dirname);
 
@@ -46,18 +48,18 @@ const server = http.createServer((req, res) => {
   promisifiedFileReading(filePath)
     .then((content) => {
       let mime = lookup(filePath);
-      console.log('returning %s of type %s', filePath, mime);
 
-      // if mime-type known, set header; otherwise, do not use Content-type header as per best practices
+      // if mime-type known, set header with it; otherwise, do not use Content-type header as per best practices
       if (mime) {
         res.writeHead(200, { 'Content-Type': mime });
         res.end(content);
       } else {
-        res.statusCode = 200;
+        res.writeHead(200);
       }
     })
     .catch((error) => {
-      console.log('sending a 404; error = ', error);
+      // createReadStream is more performant than fs.readFile & def should be used on larger files
+      console.error('Oopsies... this error happened: ', error);
       res.writeHead(404, { 'Content-Type': 'text/html' });
       fs.createReadStream(createPathName('404.html')).pipe(res);
     });
